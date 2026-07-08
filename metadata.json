@@ -1,0 +1,6 @@
+{
+  "name": "CatScope",
+  "description": "An empathetic, highly polished cat identifier, companion care tracker, and breed discovery app.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

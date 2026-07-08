@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary: #99462a;
+  --color-primary-container: #d97757;
+  --color-on-primary: #ffffff;
+  --color-secondary: #456646;
+  --color-secondary-container: #c6edc4;
+  --color-on-secondary-container: #4b6c4c;
+  --color-background: #fff8f4;
+  --color-surface: #fff8f4;
+  --color-surface-dim: #e2d8d1;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fcf2ea;
+  --color-surface-container: #f6ece5;
+  --color-surface-container-high: #f1e6df;
+  --color-surface-container-highest: #ebe1da;
+  --color-on-surface: #1f1b17;
+  --color-on-surface-variant: #55433d;
+  --color-outline: #88726c;
+  --color-outline-variant: #dbc1b9;
+}
+
+body {
+  background-color: #fff8f4;
+  color: #1f1b17;
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-sans);
+}
+
+.organic-blob {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+.scan-line {
+  animation: scan 3s linear infinite;
+}
+
+.squishy-interaction {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.squishy-interaction:active {
+  transform: scale(0.96);
+}
+
+html,
+body,
+#root {
+  overflow-x: hidden;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iPhone safe-area support (notch / home indicator) */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mobile-header {
+  min-height: calc(3.5rem + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+}
+
+.login-header {
+  min-height: calc(5rem + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+}
+
+.mobile-bottom-nav {
+  min-height: calc(5rem + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app-main-content {
+  padding-top: calc(3.5rem + env(safe-area-inset-top));
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .app-main-content {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+.error-main {
+  padding-top: calc(3.5rem + env(safe-area-inset-top));
+}
+
