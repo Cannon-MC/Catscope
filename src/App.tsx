@@ -450,7 +450,7 @@ export default function App() {
   // 1. OFFLINE / INTERNET CONNECTION ERROR VIEW
   if (showErrorScreen || !isOnline) {
     return (
-      <div id="error-screen" className="bg-surface text-on-surface min-h-screen flex flex-col font-sans overflow-x-hidden">
+      <div id="error-screen" className="phone-frame bg-surface text-on-surface min-h-screen flex flex-col font-sans overflow-x-hidden">
         <header className="bg-surface flex justify-between items-center px-6 w-full fixed top-0 z-50 border-b border-outline-variant/20 mobile-header">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-2xl font-bold">pets</span>
@@ -516,7 +516,7 @@ export default function App() {
   // 2. UNAUTHENTICATED / LOGIN VIEW
   if (!user) {
     return (
-      <div id="login-view" className="bg-background text-on-background min-h-screen flex flex-col font-sans overflow-x-hidden relative">
+      <div id="login-view" className="phone-frame bg-background text-on-background min-h-screen flex flex-col font-sans overflow-x-hidden relative">
         <header className="flex justify-center items-center px-6 w-full bg-surface login-header">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-3xl">pets</span>
@@ -608,7 +608,7 @@ export default function App() {
 
   // Name setup screen shown right after social login
   const NameSetup = () => (
-    <div className="min-h-screen bg-background text-on-background font-sans flex flex-col overflow-x-hidden relative">
+    <div className="phone-frame min-h-screen bg-background text-on-background font-sans flex flex-col overflow-x-hidden relative">
       <header className="flex justify-center items-center px-6 w-full bg-surface login-header">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-3xl">pets</span>
@@ -667,10 +667,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-background font-sans flex flex-col md:flex-row relative overflow-x-hidden">
+    <div className="phone-frame min-h-screen bg-background text-on-background font-sans flex flex-col relative overflow-x-hidden">
       
       {/* A. DESKTOP SIDEBAR NAVIGATION */}
-      <div className="hidden md:flex fixed left-0 top-0 h-screen w-20 flex-col items-center py-6 gap-8 bg-surface border-r border-outline-variant/30 z-50">
+      <div className="hidden fixed left-0 top-0 h-screen w-20 flex-col items-center py-6 gap-8 bg-surface border-r border-outline-variant/30 z-50">
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
           <span className="material-symbols-outlined text-2xl font-bold">pets</span>
         </div>
@@ -733,7 +733,7 @@ export default function App() {
       </div>
 
       {/* B. MOBILE HEADER BAR */}
-      <header className="md:hidden bg-surface flex justify-between items-center px-6 w-full fixed top-0 z-50 border-b border-outline-variant/10 mobile-header">
+      <header className="bg-surface flex justify-between items-center px-6 w-full fixed top-0 z-50 border-b border-outline-variant/10 mobile-header">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-2xl font-bold">pets</span>
           <span className="font-bold text-xl text-primary tracking-tight">{t("appName")}</span>
@@ -755,7 +755,7 @@ export default function App() {
       </header>
 
       {/* C. MAIN WORKSPACE CONTENT */}
-      <div className="flex-1 md:pl-20 min-h-0 flex flex-col app-main-content">
+      <div className="flex-1 min-h-0 flex flex-col app-main-content">
         
         {/* VIEW ROUTER FOR BREED DETAIL OR CURRENT SELECTED TAB */}
         {selectedBreedId ? (
@@ -1419,7 +1419,7 @@ export default function App() {
       </div>
 
       {/* E. MOBILE BOTTOM NAVIGATION */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-2 px-4 bg-white border-t border-outline-variant/20 shadow-lg rounded-t-xl mobile-bottom-nav">
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-2 px-4 bg-white border-t border-outline-variant/20 shadow-lg rounded-t-xl mobile-bottom-nav">
         <button 
           onClick={() => { setActiveTab("home"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
           className={`flex flex-col items-center justify-center px-4 py-1.5 rounded-full transition-all duration-200 ${

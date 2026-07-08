@@ -92,14 +92,33 @@ body {
   padding-bottom: calc(6rem + env(safe-area-inset-bottom));
 }
 
-@media (min-width: 768px) {
-  .app-main-content {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-}
-
 .error-main {
   padding-top: calc(3.5rem + env(safe-area-inset-top));
+}
+
+/* Render the app as an iPhone-sized frame on laptop screens */
+.phone-frame {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+@media (min-width: 768px) {
+  .phone-frame {
+    max-width: 430px;
+    min-height: 90vh;
+    max-height: 90vh;
+    margin: 5vh auto;
+    border-radius: 44px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+    border: 10px solid #1f1b17;
+    overflow-x: hidden;
+    overflow-y: auto;
+    transform: translateX(0);
+  }
+
+  body {
+    background-color: #e2d8d1;
+  }
 }
 
