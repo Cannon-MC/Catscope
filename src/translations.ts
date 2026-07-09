@@ -27,7 +27,6 @@ const EN_TRANSLATIONS = {
     signInWith: "Sign in with",
     continueWithGoogle: "Continue with Google",
     continueWithApple: "Continue with Apple",
-    continueWithWeChat: "Continue with WeChat",
 
     // Navigation labels
     navHome: "Home",
@@ -223,7 +222,6 @@ const TRANSLATIONS: Record<Language, Partial<Record<TranslationKey, string>>> = 
     signInWith: "Iniciar sesión con",
     continueWithGoogle: "Continuar con Google",
     continueWithApple: "Continuar con Apple",
-    continueWithWeChat: "Continuar con WeChat",
 
     navHome: "Inicio",
     navScan: "Escaner IA",
@@ -397,7 +395,6 @@ const TRANSLATIONS: Record<Language, Partial<Record<TranslationKey, string>>> = 
     signInWith: "Se connecter avec",
     continueWithGoogle: "Continuer avec Google",
     continueWithApple: "Continuer avec Apple",
-    continueWithWeChat: "Continuer avec WeChat",
 
     navHome: "Accueil",
     navScan: "Scan IA",
@@ -570,7 +567,6 @@ const TRANSLATIONS: Record<Language, Partial<Record<TranslationKey, string>>> = 
     signInWith: "通过以下方式登录",
     continueWithGoogle: "使用 Google 继续",
     continueWithApple: "使用 Apple 继续",
-    continueWithWeChat: "使用微信继续",
 
     navHome: "首页",
     navScan: "AI 扫描",

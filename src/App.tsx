@@ -157,7 +157,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Simulated device-password gate for social login
-  const handleSocialLogin = (provider: "Google" | "Apple" | "WeChat") => {
+  const handleSocialLogin = (provider: "Google" | "Apple") => {
     const password = window.prompt(t("devicePasswordPrompt", { provider }));
     if (password === "password") {
       setUser({
@@ -573,18 +573,6 @@ export default function App() {
             >
               <span className="material-symbols-outlined text-black">apps</span>
               <span className="text-sm font-bold">{t("continueWithApple")}</span>
-            </button>
-
-            <button 
-              type="button"
-              onClick={() => handleSocialLogin("WeChat")}
-              className="w-full h-14 border border-outline-variant rounded-xl flex items-center justify-center bg-surface-container-lowest hover:bg-surface-container-low transition-colors cursor-pointer gap-3"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                <path d="M9.5 4C5.36 4 2 6.91 2 10.5c0 1.96 1.04 3.72 2.71 4.92L4 18l3.12-1.56c.9.24 1.86.38 2.88.38.27 0 .53-.01.79-.04-.19-.65-.3-1.33-.3-2.03 0-3.87 3.69-7 8.01-7 .44 0 .87.03 1.29.09C18.84 5.69 14.61 4 9.5 4z" fill="#07C160"/>
-                <path d="M17.01 8.25c-3.73 0-6.76 2.46-6.76 5.5 0 3.03 3.03 5.5 6.76 5.5.88 0 1.72-.13 2.49-.36L22 19.5l-.55-2.25c1.36-1.05 2.21-2.55 2.21-4.25 0-3.04-3.03-5.5-6.76-5.5z" fill="#05A350"/>
-              </svg>
-              <span className="text-sm font-bold">{t("continueWithWeChat")}</span>
             </button>
 
             {/* Language toggle */}
