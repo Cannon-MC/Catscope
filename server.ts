@@ -1,8 +1,10 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import { BREED_PROFILES } from "./src/breedProfiles";
 
 dotenv.config();
 
@@ -32,119 +34,56 @@ function getGeminiClient() {
   return aiClient;
 }
 
-// Pre-packaged offline breed profiles so the app is beautiful and responsive immediately
-const OFFLINE_BREEDS: Record<string, any> = {
-  ragdoll: {
-    breedName: "Ragdoll",
-    shortDescription: "Gentle, affectionate, and famously docile lap cats.",
-    origin: "United States",
-    lifespan: "12-15 Years",
-    breedProfile: [
-      "The Ragdoll is one of the largest domesticated cat breeds, famous for its striking blue eyes, soft colorpoint coat, and famously sweet temperament. First developed in California in the 1960s, these cats are named for their tendency to go entirely limp and relaxed when held.",
-      "They are exceptionally docile and affectionate, often following their owners from room to room. Their soft-spoken voice and calm nature make them an absolute favorite for families seeking a peaceful indoor companion."
-    ],
-    topTraits: [
-      { name: "Affectionate", icon: "heart" },
-      { name: "Placid/Docile", icon: "smile" },
-      { name: "Kid Friendly", icon: "baby" }
-    ],
-    pros: [
-      "Extremely gentle and safe with small children",
-      "Very low aggression, adapts easily to multi-pet homes",
-      "Quiet, sweet-voiced and loves physical contact",
-      "Highly social and acts like a puppy companion"
-    ],
-    cons: [
-      "Prone to weight gain if diet is not monitored",
-      "Strictly an indoor cat due to their trusting nature",
-      "Sheds seasonally and requires regular brushing",
-      "Requires constant attention and hates being lonely"
-    ],
-    healthAndCare: [
-      { title: "Grooming Routine", description: "Twice-weekly brushing is recommended to maintain their silky coat and avoid knots." },
-      { title: "HCM Watch", description: "Regular screening for Hypertrophic Cardiomyopathy (HCM) is recommended for senior Ragdolls." },
-      { title: "Weight Guidance", description: "Keep them active using laser toys or feather wands as they tend to lounge all day." }
-    ],
-    funFact: "Ragdoll kittens are born completely pure white! Their colored point markings slowly develop over the first few weeks and take up to 4 years to reach full color."
-  },
-  bengal: {
-    breedName: "Bengal",
-    shortDescription: "A wild-looking leopard-patterned athlete with high intelligence.",
-    origin: "United States",
-    lifespan: "12-16 Years",
-    breedProfile: [
-      "The Bengal is a highly active and exotic breed created by crossing the Asian Leopard Cat with domestic cats. They boast a majestic, glittery coat with distinct leopard-like rosettes, muscular builds, and incredibly athletic movements.",
-      "Bengals are highly intelligent and curious, often showing a unique fascination with water. They thrive in active households where they receive plenty of play, mental stimulation, and climbing space."
-    ],
-    topTraits: [
-      { name: "Active", icon: "zap" },
-      { name: "High IQ", icon: "brain" },
-      { name: "Water Loving", icon: "droplet" }
-    ],
-    pros: [
-      "Extremely energetic, playful, and interactive",
-      "Hypoallergenic qualities with low shedding",
-      "Highly trainable (can walk on a leash and fetch)",
-      "Striking, unique wild leopard appearance"
-    ],
-    cons: [
-      "Needs hours of active play daily or can get destructive",
-      "Highly vocal, demanding your full attention",
-      "Will climb onto any cabinet, shelf, or door frame",
-      "High prey drive — may stalk birds or fish tanks"
-    ],
-    healthAndCare: [
-      { title: "Climbing Environment", description: "Provide tall cat trees or wall shelves. Bengals must observe their kingdom from high up." },
-      { title: "Hydration Play", description: "Give them access to dripping taps or water fountains; they absolutely love playing with water." },
-      { title: "Mental Stim", description: "Use interactive puzzle toys or clicker training to satisfy their sharp, curious minds." }
-    ],
-    funFact: "Bengals have a 'glitter gene' that gives their fur a beautiful, iridescent sheen, making them look as if they've been dusted in gold or silver under the sun!"
-  },
-  mainecoon: {
-    breedName: "Maine Coon",
-    shortDescription: "Known as the 'dogs of the cat world,' they are gentle giants.",
-    origin: "North America",
-    lifespan: "12-15 Years",
-    breedProfile: [
-      "The Maine Coon is one of the largest domesticated cat breeds. It has a distinctive physical appearance with a massive, sturdy body, tufted ears like a lynx, and a magnificent bushy tail. Native to the state of Maine, it is the official state cat and a legendary winter survivalist.",
-      "Their temperament is famously social and warm; they are cats that want to be right where the action is. Unlike many breeds, they often enjoy water, are highly trainable, and are known for their sweet, melodious chirping vocals."
-    ],
-    topTraits: [
-      { name: "Gentle", icon: "heart" },
-      { name: "High IQ", icon: "brain" },
-      { name: "Kid Friendly", icon: "baby" }
-    ],
-    pros: [
-      "Extremely loyal, loving, and people-oriented",
-      "Excellent with other pets, dogs, and children",
-      "Robust and sturdy constitution, highly adaptable",
-      "Very vocal with cute expressive chirps and trills"
-    ],
-    cons: [
-      "Requires significant grooming and regular detangling",
-      "Prone to certain genetic issues like hip dysplasia",
-      "Higher food, litter, and larger accessory costs",
-      "Needs plenty of vertical and horizontal physical space"
-    ],
-    healthAndCare: [
-      { title: "Grooming Routine", description: "Daily brushing is recommended to prevent matting of their thick, water-resistant double coat." },
-      { title: "Cardiac Watch", description: "Be aware of HCM (Hypertrophic Cardiomyopathy), a common heart condition in this giant breed." },
-      { title: "Hip Health", description: "Due to their heavy size, hip dysplasia is more common. Keep their weight carefully managed." }
-    ],
-    funFact: "Maine Coons have 'snowshoe' paws — huge, tufted feet that help them navigate deep winter snow easily! They are built naturally for the rugged, freezing cold wilderness."
+// Pre-packaged offline breed profiles shared with the frontend
+const OFFLINE_BREEDS = BREED_PROFILES;
+
+// Ensure user-uploaded scan images are persisted on disk
+const IMAGES_BASE_DIR = path.join(process.cwd(), "data", "images");
+
+function sanitizeUserId(userId: string): string {
+  return userId.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
+}
+
+function getExtensionFromMimeType(mimeType: string): string {
+  switch (mimeType) {
+    case "image/png": return "png";
+    case "image/webp": return "webp";
+    case "image/gif": return "gif";
+    default: return "jpg";
   }
-};
+}
+
+function looksLikeBase64(value: string): boolean {
+  return /^[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length > 100;
+}
+
+function saveUserImage(userId: string, base64Image: string, mimeType: string) {
+  const sanitized = sanitizeUserId(userId);
+  const userDir = path.join(IMAGES_BASE_DIR, sanitized);
+  fs.mkdirSync(userDir, { recursive: true });
+
+  const ext = getExtensionFromMimeType(mimeType || "image/jpeg");
+  const filename = `${Date.now()}.${ext}`;
+  const filePath = path.join(userDir, filename);
+
+  fs.writeFileSync(filePath, Buffer.from(base64Image, "base64"));
+
+  return {
+    filePath,
+    savedImageUrl: `/api/images/${sanitized}/${filename}`
+  };
+}
 
 // API: Get preloaded breeds list
 app.get("/api/breeds", (req, res) => {
-  res.json({ success: true, breeds: OFFLINE_BREEDS });
+  res.json({ success: true, breeds: BREED_PROFILES });
 });
 
 // API: Get a specific breed detail
 app.get("/api/breeds/:id", (req, res) => {
   const breedId = req.params.id.toLowerCase().replace(/\s+/g, "");
-  if (OFFLINE_BREEDS[breedId]) {
-    res.json({ success: true, data: OFFLINE_BREEDS[breedId] });
+  if (BREED_PROFILES[breedId]) {
+    res.json({ success: true, data: BREED_PROFILES[breedId] });
   } else {
     res.status(404).json({ success: false, error: "Breed profile not found." });
   }
@@ -152,10 +91,23 @@ app.get("/api/breeds/:id", (req, res) => {
 
 // API: Gemini Cat Identifier Scan
 app.post("/api/scan", async (req, res) => {
-  const { image, mimeType } = req.body;
+  const { image, mimeType, userId } = req.body;
 
   if (!image) {
     return res.status(400).json({ success: false, error: "No image data provided." });
+  }
+
+  // Persist uploaded / camera-captured images to data/images/{userId}
+  let savedImageUrl: string | undefined;
+  let savedImagePath: string | undefined;
+  if (userId && looksLikeBase64(image)) {
+    try {
+      const saved = saveUserImage(userId, image, mimeType);
+      savedImageUrl = saved.savedImageUrl;
+      savedImagePath = saved.filePath;
+    } catch (saveErr) {
+      console.error("Failed to save user scan image:", saveErr);
+    }
   }
 
   try {
@@ -267,7 +219,7 @@ Otherwise, return isCat: true and analyze the cat breed. If the breed is mixed o
     });
 
     const parsedResult = JSON.parse(response.text?.trim() || "{}");
-    res.json({ success: true, data: parsedResult });
+    res.json({ success: true, data: parsedResult, savedImageUrl, savedImagePath });
 
   } catch (error: any) {
     console.error("Gemini Scan Error:", error);
@@ -277,6 +229,8 @@ Otherwise, return isCat: true and analyze the cat breed. If the breed is mixed o
         success: true,
         isDemoFallback: true,
         errorMsg: error.message,
+        savedImageUrl,
+        savedImagePath,
         data: {
           isCat: true,
           breedName: "Orange Tabby (Demo)",
@@ -312,9 +266,12 @@ Otherwise, return isCat: true and analyze the cat breed. If the breed is mixed o
       });
     }
 
-    res.status(500).json({ success: false, error: error.message || "An error occurred during scan." });
+    res.status(500).json({ success: false, error: error.message || "An error occurred during scan.", savedImageUrl, savedImagePath });
   }
 });
+
+// Serve persisted user scan images
+app.use("/api/images", express.static(IMAGES_BASE_DIR));
 
 // Setup Vite Dev Middleware or Serve Built Assets
 async function startServer() {

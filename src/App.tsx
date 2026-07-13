@@ -14,7 +14,7 @@ import {
   User,
   Home,
   Search,
-  Plus,
+
   ChevronRight,
   HelpCircle,
   X,
@@ -26,16 +26,18 @@ import {
   FileText,
   Upload,
   BookMarked,
-  Sparkle,
+
   Trash2,
-  Save,
+
   Compass,
-  MapPin,
+
   Calendar,
   Lightbulb,
-  Globe
+  Globe,
+  Volume2
 } from "lucide-react";
-import { IMAGES, STANDARD_BREEDS } from "./constants";
+import { IMAGES, STANDARD_BREEDS, DEFAULT_AVATAR } from "./constants";
+import { BREED_PROFILES } from "./breedProfiles";
 import { BreedDetail, SavedCat, TabType } from "./types";
 import {
   translate,
@@ -48,33 +50,11 @@ import {
 
 // Offline-safe illustration of a cat chewing colorful cables
 const OfflineCatIllustration = () => (
-  <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    <rect width="400" height="400" fill="#fff8f4" rx="40" />
-    <circle cx="200" cy="220" r="130" fill="#f6ece5" />
-    <ellipse cx="200" cy="270" rx="85" ry="95" fill="#e58b5f" />
-    <circle cx="200" cy="175" r="65" fill="#e58b5f" />
-    <path d="M150 140 L158 80 L200 130 Z" fill="#d97757" />
-    <path d="M250 140 L242 80 L200 130 Z" fill="#d97757" />
-    <path d="M160 128 L165 95 L185 128 Z" fill="#ffe5d9" />
-    <path d="M240 128 L235 95 L215 128 Z" fill="#ffe5d9" />
-    <circle cx="175" cy="165" r="7" fill="#2a1f1b" />
-    <circle cx="225" cy="165" r="7" fill="#2a1f1b" />
-    <path d="M192 185 L208 185 L200 194 Z" fill="#d97757" />
-    <path d="M200 194 Q186 208 176 198" fill="none" stroke="#2a1f1b" strokeWidth="3" strokeLinecap="round" />
-    <path d="M200 194 Q214 208 224 198" fill="none" stroke="#2a1f1b" strokeWidth="3" strokeLinecap="round" />
-    <line x1="155" y1="180" x2="125" y2="175" stroke="#2a1f1b" strokeWidth="2" />
-    <line x1="155" y1="190" x2="125" y2="195" stroke="#2a1f1b" strokeWidth="2" />
-    <line x1="245" y1="180" x2="275" y2="175" stroke="#2a1f1b" strokeWidth="2" />
-    <line x1="245" y1="190" x2="275" y2="195" stroke="#2a1f1b" strokeWidth="2" />
-    <ellipse cx="168" cy="235" rx="16" ry="12" fill="#e58b5f" stroke="#d97757" strokeWidth="2" />
-    <ellipse cx="232" cy="235" rx="16" ry="12" fill="#e58b5f" stroke="#d97757" strokeWidth="2" />
-    <path d="M125 270 C125 220, 155 235, 170 230" fill="none" stroke="#e63946" strokeWidth="6" strokeLinecap="round" />
-    <path d="M275 270 C275 220, 245 235, 230 230" fill="none" stroke="#457b9d" strokeWidth="6" strokeLinecap="round" />
-    <path d="M145 290 C145 225, 175 240, 188 233" fill="none" stroke="#2a9d8f" strokeWidth="6" strokeLinecap="round" />
-    <path d="M255 290 C255 225, 225 240, 212 233" fill="none" stroke="#f4a261" strokeWidth="6" strokeLinecap="round" />
-    <path d="M200 230 L200 310" fill="none" stroke="#6d597a" strokeWidth="6" strokeLinecap="round" />
-    <path d="M285 300 Q330 280 320 235" fill="none" stroke="#e58b5f" strokeWidth="12" strokeLinecap="round" />
-  </svg>
+  <img
+    src={IMAGES.offlineCat}
+    alt={"A real cat looking curious"}
+    className="w-full h-full object-cover"
+  />
 );
 
 export default function App() {
@@ -106,12 +86,14 @@ export default function App() {
   // Search input
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Breed discovery expand/collapse
+  const [showAllBreeds, setShowAllBreeds] = useState(false);
+  const [showBreedDiscoveryPage, setShowBreedDiscoveryPage] = useState(false);
+
   // Storage / Saved Cats
   const [savedCats, setSavedCats] = useState<SavedCat[]>([]);
 
   // Modals & Interactive features
-  const [showNutritionModal, setShowNutritionModal] = useState(false);
-  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showErrorScreen, setShowErrorScreen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showNameSetup, setShowNameSetup] = useState(false);
@@ -123,47 +105,35 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [flashOn, setFlashOn] = useState(false);
-  
-  // Interactive presets to scan instantly
-  const scanPresets = [
-    {
-      name: t("presetMaineCoon"),
-      img: IMAGES.cameraFeed,
-      description: "Majestic fluffy orange giant sitting indoor"
-    },
-    {
-      name: t("presetCalico"),
-      img: IMAGES.calicoLogin,
-      description: "Warm amber eyes, tri-color calico close-up"
-    }
-  ];
-
-  // Nutrition state
-  const [catWeight, setCatWeight] = useState(10); // in lbs
-  const [activityLevel, setActivityLevel] = useState<"low" | "medium" | "high">("medium");
-  const [completedMeals, setCompletedMeals] = useState<Record<string, boolean>>({
-    breakfast: true,
-    lunch: false,
-    dinner: false
-  });
-
-  // Vitals state
-  const [vitalsHeartRate, setVitalsHeartRate] = useState(130);
-  const [vitalsWeight, setVitalsWeight] = useState(10.4);
-  const [vitalsIsMeasuring, setVitalsIsMeasuring] = useState(false);
-  const [vitalsCompleted, setVitalsCompleted] = useState(false);
-
   // File Upload trigger
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Live camera preview state
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  // Load a previously-uploaded avatar for a given email, falling back to the white default
+  const getStoredAvatar = (email: string): string => {
+    try {
+      return localStorage.getItem(`catscope_avatar_${email}`) || DEFAULT_AVATAR;
+    } catch {
+      return DEFAULT_AVATAR;
+    }
+  };
 
   // Simulated device-password gate for social login
   const handleSocialLogin = (provider: "Google" | "Apple") => {
     const password = window.prompt(t("devicePasswordPrompt", { provider }));
     if (password === "password") {
+      const email = `${provider.toLowerCase()}@catscope.com`;
       setUser({
         name: "",
-        email: `${provider.toLowerCase()}@catscope.com`,
-        avatarUrl: IMAGES.userProfile
+        email,
+        avatarUrl: getStoredAvatar(email)
       });
       setSetupName("");
       setShowNameSetup(true);
@@ -224,12 +194,20 @@ export default function App() {
     localStorage.setItem("catscope_saved", JSON.stringify(updated));
   };
 
-  // View specific breed details (either static preloaded or through endpoint)
+  // View specific breed details (use embedded offline profiles first, then API)
   const handleViewBreedDetail = async (id: string) => {
     setSelectedBreedId(id);
     setSelectedBreedDetail(null);
     setIsDetailLoading(true);
     try {
+      const normalizedId = id.toLowerCase().replace(/\s+/g, "");
+      const localProfile = BREED_PROFILES[normalizedId];
+      if (localProfile) {
+        setSelectedBreedDetail(localProfile);
+        setIsDetailLoading(false);
+        return;
+      }
+
       const res = await fetch(`/api/breeds/${id}`);
       const result = await res.json();
       if (result.success) {
@@ -246,16 +224,21 @@ export default function App() {
   };
 
   // Scan execution
-  const handleRunScan = async (base64Image: string, mimeType: string = "image/jpeg") => {
+  const handleRunScan = async (
+    base64Image: string,
+    mimeType: string = "image/jpeg",
+    source: "gallery" | "camera" | "preset" = "gallery"
+  ) => {
     setIsScanning(true);
     setScanError(null);
     try {
       const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, "");
+      const userId = user?.email || null;
       
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: cleanBase64, mimeType })
+        body: JSON.stringify({ image: cleanBase64, mimeType, userId, source })
       });
       
       const result = await response.json();
@@ -272,13 +255,18 @@ export default function App() {
         setSelectedBreedDetail(payload);
         setSelectedBreedId(payload.breedName);
         
-        // Auto-save scanned cat to list
+        // Auto-save scanned cat to list using server-persisted image URL when available
+        const persistedImageUrl = result.savedImageUrl || null;
+        const fallbackImageUrl = base64Image.startsWith("data:")
+          ? base64Image
+          : `data:${mimeType};base64,${cleanBase64}`;
+        
         const newSaved: SavedCat = {
           id: Date.now().toString(),
           breedName: payload.breedName,
           shortDescription: payload.shortDescription,
           scannedAt: new Date().toISOString(),
-          imageUrl: base64Image.startsWith("data:") ? base64Image : `data:${mimeType};base64,${cleanBase64}`,
+          imageUrl: persistedImageUrl || fallbackImageUrl,
           notes: result.isDemoFallback ? t("demoModeNote") : t("identifiedNote")
         };
         saveCatsToStorage([newSaved, ...savedCats]);
@@ -293,8 +281,11 @@ export default function App() {
     }
   };
 
-  // Photo upload handling
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Photo upload handling (gallery or camera)
+  const handlePhotoUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    source: "gallery" | "camera" = "gallery"
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -303,35 +294,32 @@ export default function App() {
       if (typeof reader.result === "string") {
         setScanImage(reader.result);
         setScanMimeType(file.type);
-        handleRunScan(reader.result, file.type);
+        handleRunScan(reader.result, file.type, source);
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
-  // Handle Preset Selection for immediate scanning
-  const handleScanPreset = async (presetImgUrl: string) => {
-    setIsScanning(true);
-    setScanError(null);
-    setScanImage(presetImgUrl);
+  // Profile picture upload handling
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
 
-    try {
-      // We convert preset hotlinks to base64 via a quick fetch to server proxy if needed,
-      // or we can pass the URL or let server handle it. Here, we can fetch & convert to base64
-      const response = await fetch(presetImgUrl);
-      const blob = await response.blob();
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          handleRunScan(reader.result, blob.type);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        const avatarUrl = reader.result;
+        setUser({ ...user, avatarUrl });
+        try {
+          localStorage.setItem(`catscope_avatar_${user.email}`, avatarUrl);
+        } catch (err) {
+          console.error("Failed to save avatar:", err);
         }
-      };
-      reader.readAsDataURL(blob);
-    } catch (err) {
-      // Fallback: If image fetch is CORS blocked in preview sandbox, simulate scanning directly by asking server
-      // our endpoint handles errors gracefully
-      handleRunScan(presetImgUrl, "image/jpeg");
-    }
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   // Helper mapping icon keys to actual lucide components
@@ -343,6 +331,7 @@ export default function App() {
       case "zap": return <Zap className="w-5 h-5" />;
       case "brain": return <Brain className="w-5 h-5" />;
       case "droplet": return <Droplet className="w-5 h-5" />;
+      case "volume-2": return <Volume2 className="w-5 h-5" />;
       default: return <Sparkles className="w-5 h-5" />;
     }
   };
@@ -354,27 +343,6 @@ export default function App() {
   );
 
   // Daily Nutrition formula
-  const calculatedCalories = Math.round(
-    activityLevel === "low" ? catWeight * 20 : activityLevel === "medium" ? catWeight * 24 : catWeight * 30
-  );
-
-  // Vitals simulation run
-  const runVitalsSimulation = () => {
-    setVitalsIsMeasuring(true);
-    setVitalsCompleted(false);
-    let count = 0;
-    const interval = setInterval(() => {
-      setVitalsHeartRate(Math.floor(120 + Math.random() * 25));
-      setVitalsWeight(Number((10.0 + Math.random() * 0.8).toFixed(1)));
-      count++;
-      if (count > 15) {
-        clearInterval(interval);
-        setVitalsIsMeasuring(false);
-        setVitalsCompleted(true);
-      }
-    }, 150);
-  };
-
   // Save customized note to a saved cat
   const handleUpdateCatNotes = (id: string, notes: string) => {
     const updated = savedCats.map(c => c.id === id ? { ...c, notes } : c);
@@ -407,50 +375,178 @@ export default function App() {
     }
   };
 
-  // Trigger flash shutter simulation
-  const handleTriggerShutter = () => {
-    if (!scanImage) {
-      // Trigger preset or mock upload if no image
-      if (fileInputRef.current) {
-        fileInputRef.current.click();
-      }
+  // Live camera preview helpers
+  const startCamera = async () => {
+    setCameraError(null);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraError(t("cameraNotSupported"));
       return;
     }
-    // Simulate shutter click flash overlay
-    const flashOverlay = document.createElement("div");
-    flashOverlay.className = "fixed inset-0 bg-white z-50 transition-opacity duration-300 opacity-100";
-    document.body.appendChild(flashOverlay);
-    setTimeout(() => {
-      flashOverlay.style.opacity = "0";
-      setTimeout(() => flashOverlay.remove(), 300);
-    }, 50);
-    
-    handleRunScan(scanImage, scanMimeType || "image/jpeg");
+
+    let stream: MediaStream | null = null;
+    try {
+      // Prefer the rear/environment camera on mobile; fall back to any camera on desktop Macs
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false
+      });
+    } catch {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      } catch (err) {
+        console.error("Camera access error:", err);
+        setCameraError(t("cameraAccessError"));
+        return;
+      }
+    }
+
+    setCameraStream(stream);
   };
 
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current || !cameraStream) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    stopCamera();
+    setScanImage(dataUrl);
+    setScanMimeType("image/jpeg");
+    handleRunScan(dataUrl, "image/jpeg", "camera");
+  };
+
+  // Trigger flash shutter simulation
+  const handleTriggerShutter = () => {
+    if (cameraStream) {
+      capturePhoto();
+      return;
+    }
+    if (!scanImage) {
+      startCamera();
+      return;
+    }
+    // Re-scan existing image
+    handleRunScan(scanImage, scanMimeType || "image/jpeg", "camera");
+  };
+
+  // Attach the camera stream to the video element once it is rendered
+  useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      if (videoRef.current.srcObject !== cameraStream) {
+        videoRef.current.srcObject = cameraStream;
+      }
+      videoRef.current.play().catch((err) => {
+        console.error("Video play error:", err);
+      });
+    }
+  }, [cameraStream]);
+
+  // Stop the camera when leaving the scan tab
+  useEffect(() => {
+    if (activeTab !== "scan") {
+      stopCamera();
+    }
+  }, [activeTab]);
+
   // Helper to render a language selector control
-  const LanguageSelector = ({ className = "" }: { className?: string }) => (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <Globe className="w-4 h-4 text-primary" />
-      <select
-        value={language}
-        onChange={(e) => setLanguage(e.target.value as Language)}
-        className="bg-surface-container-lowest border border-outline-variant rounded-lg px-2 py-1 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer"
-        aria-label={t("language")}
-      >
-        {SUPPORTED_LANGUAGES.map((lang) => (
-          <option key={lang} value={lang}>
-            {LANGUAGE_LABELS[lang]}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+  const LanguageSelector = ({ className = "" }: { className?: string }) => {
+    const [open, setOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+          setOpen(false);
+        }
+      };
+      if (open) {
+        document.addEventListener("mousedown", handleClickOutside);
+      }
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [open]);
+
+    return (
+      <div ref={menuRef} className={`relative ${className}`}>
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label={t("language")}
+          className="flex items-center gap-1.5 bg-surface-container-lowest hover:bg-surface-container-low border border-outline-variant rounded-full pl-2.5 pr-1.5 py-1 text-sm font-bold text-on-surface shadow-sm transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <Globe className="w-4 h-4 text-primary" />
+          <span className="uppercase tracking-wide">{language}</span>
+          <span
+            className={`ml-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          >
+            <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+          </span>
+        </button>
+
+        {open && (
+          <div
+            role="listbox"
+            className="absolute right-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-outline-variant/40 py-1.5 z-50 overflow-hidden origin-top-right"
+          >
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const active = lang === language;
+              return (
+                <button
+                  key={lang}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    setLanguage(lang);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left transition-colors ${
+                    active
+                      ? "bg-primary/8 text-primary"
+                      : "text-on-surface hover:bg-surface-container-low"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-extrabold ${
+                        active
+                          ? "bg-primary text-on-primary"
+                          : "bg-surface-container-high text-on-surface-variant"
+                      }`}
+                    >
+                      {lang.toUpperCase()}
+                    </span>
+                    <span className="text-sm font-semibold">{LANGUAGE_LABELS[lang]}</span>
+                  </span>
+                  {active && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // 1. OFFLINE / INTERNET CONNECTION ERROR VIEW
   if (showErrorScreen || !isOnline) {
     return (
-      <div id="error-screen" className="phone-frame bg-surface text-on-surface min-h-screen flex flex-col font-sans overflow-x-hidden">
+      <div id="error-screen" className="phone-frame bg-surface text-on-surface flex flex-col font-sans overflow-x-hidden">
         <header className="bg-surface flex justify-between items-center px-6 w-full fixed top-0 z-50 border-b border-outline-variant/20 mobile-header">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-2xl font-bold">pets</span>
@@ -466,7 +562,7 @@ export default function App() {
           )}
         </header>
         
-        <main className="flex-grow flex flex-col items-center justify-center px-6 pb-20 error-main">
+        <main className="flex-grow flex flex-col items-center justify-center px-5 sm:px-6 pb-20 error-main">
           <div className="w-full max-w-sm text-center space-y-6">
             <div className="relative group">
               <div className="absolute -inset-4 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-all duration-700"></div>
@@ -490,6 +586,7 @@ export default function App() {
                   if (navigator.onLine) {
                     setShowErrorScreen(false);
                     setActiveTab("home");
+                    setShowBreedDiscoveryPage(false);
                   } else {
                     window.location.reload();
                   }
@@ -516,7 +613,7 @@ export default function App() {
   // 2. UNAUTHENTICATED / LOGIN VIEW
   if (!user) {
     return (
-      <div id="login-view" className="phone-frame bg-background text-on-background min-h-screen flex flex-col font-sans overflow-x-hidden relative">
+      <div id="login-view" className="phone-frame bg-background text-on-background flex flex-col font-sans overflow-x-hidden relative">
         <header className="flex justify-center items-center px-6 w-full bg-surface login-header">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-3xl">pets</span>
@@ -524,7 +621,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-grow flex flex-col items-center justify-center px-6 pb-12 relative overflow-hidden">
+        <main className="flex-grow flex flex-col items-center justify-center px-5 sm:px-6 pb-12 relative overflow-hidden">
           {/* Ambient organic blobs for Boutique style */}
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-fixed opacity-20 organic-blob blur-3xl pointer-events-none"></div>
           <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-secondary-fixed opacity-10 organic-blob blur-3xl pointer-events-none"></div>
@@ -594,68 +691,71 @@ export default function App() {
   }
 
 
-  // Name setup screen shown right after social login
-  const NameSetup = () => (
-    <div className="phone-frame min-h-screen bg-background text-on-background font-sans flex flex-col overflow-x-hidden relative">
-      <header className="flex justify-center items-center px-6 w-full bg-surface login-header">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-3xl">pets</span>
-          <h1 className="text-2xl font-bold text-primary tracking-tight font-sans">{t("appName")}</h1>
-        </div>
-      </header>
-
-      <main className="flex-grow flex flex-col items-center justify-center px-6 pb-12 relative">
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-fixed opacity-20 organic-blob blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-secondary-fixed opacity-10 organic-blob blur-3xl pointer-events-none"></div>
-
-        <div className="text-center mb-8 w-full max-w-sm z-10">
-          <div className="w-24 h-24 mx-auto rounded-full overflow-hidden border-4 border-surface-container shadow-sm mb-4">
-            <img className="w-full h-full object-cover" alt={t("calicoAlt")} src={IMAGES.calicoLogin} />
-          </div>
-          <h2 className="text-2xl font-bold text-on-surface mb-2 font-sans">{t("nameSetupTitle")}</h2>
-          <p className="text-base text-on-surface-variant px-4">{t("nameSetupSubtitle")}</p>
-        </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const trimmed = setupName.trim();
-            if (!trimmed) {
-              alert(t("nameRequired"));
-              return;
-            }
-            if (user) {
-              setUser({ ...user, name: trimmed });
-            }
-            setShowNameSetup(false);
-          }}
-          className="w-full max-w-sm flex flex-col gap-4 z-10"
-        >
-          <input
-            type="text"
-            value={setupName}
-            onChange={(e) => setSetupName(e.target.value)}
-            placeholder={t("namePlaceholder")}
-            className="w-full h-14 px-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-base font-semibold text-on-surface placeholder-on-surface-variant/40 focus:ring-2 focus:ring-primary focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="w-full h-14 bg-primary text-on-primary font-bold text-lg rounded-full shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
-          >
-            {t("continueButton")}
-          </button>
-        </form>
-      </main>
-    </div>
-  );
-
   // 3. MAIN AUTHENTICATED APP SYSTEM
   if (showNameSetup) {
-    return <NameSetup />;
+    return (
+      <div className="phone-frame bg-background text-on-background font-sans flex flex-col overflow-x-hidden relative">
+        <header className="flex justify-center items-center px-6 w-full bg-surface login-header">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-3xl">pets</span>
+            <h1 className="text-2xl font-bold text-primary tracking-tight font-sans">{t("appName")}</h1>
+          </div>
+        </header>
+
+        <main className="flex-grow flex flex-col items-center justify-center px-5 sm:px-6 pb-12 relative">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-fixed opacity-20 organic-blob blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-secondary-fixed opacity-10 organic-blob blur-3xl pointer-events-none"></div>
+
+          <div className="text-center mb-8 w-full max-w-sm z-10">
+            <div className="w-24 h-24 mx-auto rounded-full overflow-hidden border-4 border-surface-container shadow-sm mb-4">
+              <img className="w-full h-full object-cover" alt={t("calicoAlt")} src={IMAGES.calicoLogin} />
+            </div>
+            <h2 className="text-2xl font-bold text-on-surface mb-2 font-sans">{t("nameSetupTitle")}</h2>
+            <p className="text-base text-on-surface-variant px-4">{t("nameSetupSubtitle")}</p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const trimmed = setupName.trim();
+              if (!trimmed) {
+                alert(t("nameRequired"));
+                return;
+              }
+              if (user) {
+                setUser({ ...user, name: trimmed });
+              }
+              setShowNameSetup(false);
+            }}
+            className="w-full max-w-sm flex flex-col gap-4 z-10"
+          >
+            <div className="relative">
+              <input
+                type="text"
+                value={setupName}
+                onChange={(e) => setSetupName(e.target.value.slice(0, 16))}
+                placeholder={t("namePlaceholder")}
+                maxLength={16}
+                className="w-full h-14 px-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-base font-semibold text-on-surface placeholder-on-surface-variant/40 focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-on-surface-variant/60">
+                {setupName.length}/16
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="w-full h-14 bg-primary text-on-primary font-bold text-lg rounded-full shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
+            >
+              {t("continueButton")}
+            </button>
+          </form>
+        </main>
+      </div>
+    );
   }
 
   return (
-    <div className="phone-frame min-h-screen bg-background text-on-background font-sans flex flex-col relative overflow-x-hidden">
+    <div className="phone-frame bg-background text-on-background font-sans flex flex-col relative overflow-x-hidden">
       
       {/* A. DESKTOP SIDEBAR NAVIGATION */}
       <div className="hidden fixed left-0 top-0 h-screen w-20 flex-col items-center py-6 gap-8 bg-surface border-r border-outline-variant/30 z-50">
@@ -665,7 +765,7 @@ export default function App() {
 
         <nav className="flex flex-col gap-4 mt-6">
           <button 
-            onClick={() => { setActiveTab("home"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
+            onClick={() => { setActiveTab("home"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
             className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all squishy-interaction ${
               activeTab === "home" && !selectedBreedId ? "bg-primary text-on-primary shadow-md" : "text-on-surface-variant hover:bg-surface-container-low"
             }`}
@@ -675,7 +775,7 @@ export default function App() {
           </button>
 
           <button 
-            onClick={() => { setActiveTab("scan"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
+            onClick={() => { setActiveTab("scan"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
             className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all squishy-interaction ${
               activeTab === "scan" && !selectedBreedId ? "bg-primary text-on-primary shadow-md" : "text-on-surface-variant hover:bg-surface-container-low"
             }`}
@@ -685,7 +785,7 @@ export default function App() {
           </button>
 
           <button 
-            onClick={() => { setActiveTab("saved"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
+            onClick={() => { setActiveTab("saved"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
             className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all squishy-interaction ${
               activeTab === "saved" && !selectedBreedId ? "bg-primary text-on-primary shadow-md" : "text-on-surface-variant hover:bg-surface-container-low"
             }`}
@@ -695,7 +795,7 @@ export default function App() {
           </button>
 
           <button 
-            onClick={() => { setActiveTab("profile"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
+            onClick={() => { setActiveTab("profile"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
             className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all squishy-interaction ${
               activeTab === "profile" && !selectedBreedId ? "bg-primary text-on-primary shadow-md" : "text-on-surface-variant hover:bg-surface-container-low"
             }`}
@@ -706,14 +806,6 @@ export default function App() {
         </nav>
 
         <div className="mt-auto flex flex-col gap-4">
-          <button 
-            onClick={() => setShowErrorScreen(true)}
-            className="w-12 h-12 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low rounded-2xl transition-all"
-            title={t("testErrorPage")}
-          >
-            <AlertCircle className="w-5 h-5 text-primary" />
-          </button>
-          
           <div className="w-10 h-10 rounded-full border-2 border-secondary overflow-hidden">
             <img className="w-full h-full object-cover" alt={t("navProfile")} src={user.avatarUrl} />
           </div>
@@ -721,21 +813,12 @@ export default function App() {
       </div>
 
       {/* B. MOBILE HEADER BAR */}
-      <header className="bg-surface flex justify-between items-center px-6 w-full fixed top-0 z-50 border-b border-outline-variant/10 mobile-header">
+      <header className="bg-surface flex justify-between items-center px-4 sm:px-6 w-full fixed top-0 z-50 border-b border-outline-variant/10 mobile-header">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-2xl font-bold">pets</span>
           <span className="font-bold text-xl text-primary tracking-tight">{t("appName")}</span>
         </div>
         <div className="flex items-center gap-3">
-          <LanguageSelector />
-          <button 
-            onClick={() => setShowErrorScreen(true)}
-            className="p-1.5 rounded-full hover:bg-surface-container-low text-primary flex items-center justify-center"
-            title={t("simulateErrorView")}
-          >
-            <AlertCircle className="w-5 h-5" />
-          </button>
-          
           <div className="w-8 h-8 rounded-full border border-secondary overflow-hidden">
             <img className="w-full h-full object-cover" alt={t("navProfile")} src={user.avatarUrl} />
           </div>
@@ -748,7 +831,7 @@ export default function App() {
         {/* VIEW ROUTER FOR BREED DETAIL OR CURRENT SELECTED TAB */}
         {selectedBreedId ? (
           /* ==================== SCREEN: BREED DETAIL VIEW ==================== */
-          <main className="max-w-4xl mx-auto px-6 py-6 w-full flex-grow">
+          <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 w-full flex-grow">
             <button 
               onClick={() => { setSelectedBreedId(null); setSelectedBreedDetail(null); }}
               className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity mb-4 font-semibold text-sm focus:outline-none"
@@ -772,10 +855,9 @@ export default function App() {
                         alt={selectedBreedDetail.breedName} 
                         className="absolute inset-0 w-full h-full object-cover"
                         src={
-                          selectedBreedId === "ragdoll" ? IMAGES.ragdoll :
-                          selectedBreedId === "bengal" ? IMAGES.bengal :
-                          selectedBreedId === "mainecoon" ? IMAGES.maineCoon :
-                          scanImage || IMAGES.cameraFeed
+                          scanImage ||
+                          STANDARD_BREEDS.find((b) => b.id === selectedBreedId)?.image ||
+                          IMAGES.cameraFeed
                         }
                       />
                       <div className="absolute top-4 left-4">
@@ -912,8 +994,8 @@ export default function App() {
                 {/* Did You Know Highlight */}
                 <section className="bg-inverse-surface text-inverse-on-surface p-6 md:p-8 rounded-[24px] flex flex-col md:flex-row items-center gap-6 overflow-hidden">
                   <div className="md:w-2/3">
-                    <h3 className="text-xl font-bold mb-2 text-primary-fixed-dim">{t("didYouKnow")}</h3>
-                    <p className="text-base text-white/90 leading-relaxed font-medium">
+                    <h3 className="text-xl font-bold mb-2 text-black">{t("didYouKnow")}</h3>
+                    <p className="text-base text-black leading-relaxed font-medium">
                       {selectedBreedDetail.funFact || t("didYouKnowFallback")}
                     </p>
                   </div>
@@ -930,12 +1012,79 @@ export default function App() {
               </div>
             )}
           </main>
+        ) : showBreedDiscoveryPage ? (
+          /* ==================== SCREEN: ALL BREEDS ==================== */
+          <main className="px-4 sm:px-6 pt-6 pb-12 max-w-4xl mx-auto w-full flex-grow space-y-6">
+            <button 
+              onClick={() => setShowBreedDiscoveryPage(false)}
+              className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity font-semibold text-sm focus:outline-none"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{t("backToDiscovery")}</span>
+            </button>
+
+            <div>
+              <h1 className="text-3xl font-extrabold text-on-surface mb-2 font-sans">{t("breedDiscovery")}</h1>
+              <p className="text-base text-on-surface-variant font-medium">
+                {t("allBreedsSubtitle", { count: STANDARD_BREEDS.length })}
+              </p>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+                <Search className="w-5 h-5" />
+              </div>
+              <input 
+                className="w-full h-12 pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-base font-medium transition-all shadow-sm"
+                placeholder={t("searchPlaceholder")} 
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredBreeds.length > 0 ? (
+                filteredBreeds.map((breed) => (
+                  <div 
+                    key={breed.id}
+                    onClick={() => handleViewBreedDetail(breed.id)}
+                    className="relative overflow-hidden rounded-[24px] aspect-[4/3] md:h-72 card-shadow group cursor-pointer border border-outline-variant/30 hover:shadow-md transition-shadow"
+                  >
+                    <img 
+                      alt={breed.name} 
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      src={breed.image}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent"></div>
+                    
+                    {breed.isFeatured && (
+                      <div className="absolute top-4 right-4">
+                        <span className="bg-primary text-on-primary px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
+                          {t("featuredBadge")}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="absolute bottom-4 left-4 text-white">
+                      <h3 className="text-xl font-bold font-sans">{breed.name}</h3>
+                      <p className="text-white/80 text-sm font-medium">{breed.tagline}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full py-12 text-center text-on-surface-variant font-semibold">
+                  {t("noBreedsFound")}
+                </div>
+              )}
+            </div>
+          </main>
         ) : (
           /* ==================== SCREEN CHANGER BY TABS ==================== */
           <>
             {activeTab === "home" && (
               /* ==================== SCREEN: DASHBOARD ==================== */
-              <main className="px-6 pt-6 pb-12 max-w-4xl mx-auto w-full flex-grow space-y-8">
+              <main className="px-4 sm:px-6 pt-6 pb-12 max-w-4xl mx-auto w-full flex-grow space-y-8">
                 {/* Welcome Header */}
                 <section className="space-y-4">
                   <div>
@@ -965,7 +1114,12 @@ export default function App() {
                 {/* Breed Discovery */}
                 <section className="space-y-4">
                   <div className="flex justify-between items-end">
-                    <h2 className="text-xl font-extrabold text-on-surface tracking-tight">{t("breedDiscovery")}</h2>
+                    <button
+                      onClick={() => setShowBreedDiscoveryPage(true)}
+                      className="text-xl font-extrabold text-on-surface tracking-tight hover:text-primary transition-colors"
+                    >
+                      {t("breedDiscovery")}
+                    </button>
                     {searchQuery && (
                       <button 
                         onClick={() => setSearchQuery("")} 
@@ -974,11 +1128,19 @@ export default function App() {
                         {t("clearSearch")}
                       </button>
                     )}
+                    {!searchQuery && filteredBreeds.length > 3 && (
+                      <button
+                        onClick={() => setShowBreedDiscoveryPage(true)}
+                        className="text-sm font-semibold text-primary hover:underline"
+                      >
+                        {t("moreBreeds", { count: filteredBreeds.length - 3 })}
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {filteredBreeds.length > 0 ? (
-                      filteredBreeds.map((breed) => (
+                      filteredBreeds.slice(0, 3).map((breed) => (
                         <div 
                           key={breed.id}
                           onClick={() => handleViewBreedDetail(breed.id)}
@@ -1013,45 +1175,13 @@ export default function App() {
                   </div>
                 </section>
 
-                {/* Daily Care Stack */}
-                <section className="space-y-6">
+                {/* Daily Care Tips */}
+                <section className="space-y-4">
                   <h2 className="text-xl font-extrabold text-on-surface tracking-tight">{t("dailyCare")}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Nutrition Card */}
-                    <div 
-                      onClick={() => setShowNutritionModal(true)}
-                      className="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-4 flex gap-4 items-center card-shadow squishy-interaction cursor-pointer"
-                    >
-                      <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0">
-                        <img alt={t("nutritionPlanner")} className="w-full h-full object-cover" src={IMAGES.nutrition} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-on-surface">{t("nutritionPlanner")}</h3>
-                        <p className="text-sm text-on-surface-variant mb-2">{t("nutritionCardDescription")}</p>
-                        <div className="flex items-center gap-1 text-secondary font-semibold text-sm">
-                          <span>{t("managePlan")}</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Vitals Check Card */}
-                    <div 
-                      onClick={() => { setShowVitalsModal(true); runVitalsSimulation(); }}
-                      className="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-4 flex gap-4 items-center card-shadow squishy-interaction cursor-pointer"
-                    >
-                      <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0">
-                        <img alt={t("vitalsCheck")} className="w-full h-full object-cover" src={IMAGES.vitals} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-on-surface">{t("vitalsCheck")}</h3>
-                        <p className="text-sm text-on-surface-variant mb-2">{t("vitalsCardDescription")}</p>
-                        <div className="flex items-center gap-1 text-secondary font-semibold text-sm">
-                          <span>{t("newScan")}</span>
-                          <Plus className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
+                  <div className="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-5 card-shadow">
+                    <p className="text-base text-on-surface-variant leading-relaxed font-medium">
+                      {t("dailyCareTips")}
+                    </p>
                   </div>
                 </section>
 
@@ -1081,17 +1211,28 @@ export default function App() {
 
             {activeTab === "scan" && (
               /* ==================== SCREEN: AI SCANNER ==================== */
-              <main className="flex-grow flex flex-col min-h-0 px-6 py-4 relative max-w-3xl mx-auto w-full">
+              <main className="flex-grow flex flex-col min-h-0 px-4 sm:px-6 py-4 relative max-w-3xl mx-auto w-full">
                 {/* Camera Feed Container */}
-                <div className="flex-1 min-h-0 md:min-h-[400px] relative rounded-[32px] overflow-hidden shadow-xl border-4 border-surface-container-highest bg-surface-dim">
+                <div className="flex-1 min-h-0 min-h-[320px] sm:min-h-[380px] md:min-h-[400px] relative rounded-[32px] overflow-hidden shadow-xl border-4 border-surface-container-highest bg-surface-dim">
                   
-                  {/* Display selected scanning picture */}
-                  <div className="absolute inset-0 w-full h-full">
-                    <img 
-                      className="w-full h-full object-cover" 
-                      alt={t("cameraAlt")} 
-                      src={scanImage || IMAGES.cameraFeed} 
-                    />
+                  {/* Display live camera preview, selected scanning picture, or placeholder */}
+                  <div className="absolute inset-0 w-full h-full bg-black">
+                    {cameraStream ? (
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img 
+                        className="w-full h-full object-cover" 
+                        alt={t("cameraAlt")} 
+                        src={scanImage || IMAGES.cameraFeed} 
+                      />
+                    )}
+                    <canvas ref={canvasRef} className="hidden" />
                   </div>
 
                   {/* Overlays / Viewfinder */}
@@ -1122,33 +1263,30 @@ export default function App() {
                         <div className="absolute left-0 right-0 h-1 bg-primary scan-line shadow-[0_0_15px_rgba(153,70,42,1)]"></div>
                       )}
                       
-                      {/* Interactive presets wrapper inside camera feed */}
-                      {!isScanning && !scanImage && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 backdrop-blur-sm pointer-events-auto rounded-[24px] p-4 text-center text-white">
-                          <p className="text-sm font-bold">{t("scanPresetsPrompt")}</p>
-                          <div className="flex flex-col gap-2 w-full max-w-xs mt-2">
-                            {scanPresets.map((preset, idx) => (
-                              <button 
-                                key={idx}
-                                onClick={() => handleScanPreset(preset.img)}
-                                className="w-full bg-primary/95 text-white font-bold text-xs py-2.5 rounded-xl hover:brightness-110 squishy-interaction cursor-pointer"
-                              >
-                                {preset.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {/* Scan prompt overlay */}
                     <div className="absolute bottom-6 text-center w-full px-6">
                       <p className="text-white font-semibold text-sm drop-shadow-md bg-black/30 px-4 py-1.5 rounded-full inline-block">
-                        {isScanning ? t("scanPromptScanning") : t("scanPromptIdle")}
+                        {isScanning
+                          ? t("scanPromptScanning")
+                          : cameraStream
+                            ? t("scanPromptCapture")
+                            : scanImage
+                              ? t("scanPromptRescan")
+                              : t("scanPromptIdle")}
                       </p>
                     </div>
                   </div>
                 </div>
+
+                {/* Camera error message */}
+                {cameraError && (
+                  <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 text-amber-800 text-sm">
+                    <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+                    <p className="font-medium">{cameraError}</p>
+                  </div>
+                )}
 
                 {/* Shutter controls section */}
                 <div className="mt-4 mb-20 z-10">
@@ -1159,8 +1297,16 @@ export default function App() {
                       <input 
                         type="file" 
                         ref={fileInputRef}
-                        onChange={handlePhotoUpload}
+                        onChange={(e) => handlePhotoUpload(e, "gallery")}
                         accept="image/*"
+                        className="hidden"
+                      />
+                      <input 
+                        type="file" 
+                        ref={cameraInputRef}
+                        onChange={(e) => handlePhotoUpload(e, "camera")}
+                        accept="image/*"
+                        capture="environment"
                         className="hidden"
                       />
                       <button 
@@ -1224,7 +1370,7 @@ export default function App() {
 
             {activeTab === "saved" && (
               /* ==================== SCREEN: SAVED LIBRARY ==================== */
-              <main className="px-6 pt-6 pb-12 max-w-4xl mx-auto w-full flex-grow space-y-6">
+              <main className="px-4 sm:px-6 pt-6 pb-12 max-w-4xl mx-auto w-full flex-grow space-y-6">
                 <div className="flex justify-between items-center">
                   <div>
                     <h1 className="text-2xl font-extrabold text-on-surface tracking-tight">{t("savedLibraryTitle")}</h1>
@@ -1320,24 +1466,32 @@ export default function App() {
 
             {activeTab === "profile" && (
               /* ==================== SCREEN: PROFILE & DEV TOOLS ==================== */
-              <main className="px-6 pt-6 pb-12 max-w-2xl mx-auto w-full flex-grow space-y-6">
+              <main className="px-4 sm:px-6 pt-6 pb-12 max-w-2xl mx-auto w-full flex-grow space-y-6">
                 {/* User Info */}
                 <div className="bg-white rounded-[24px] p-6 border border-outline-variant/30 shadow-sm flex flex-col sm:flex-row items-center gap-6">
-                  <div className="w-24 h-24 rounded-full border-4 border-primary overflow-hidden shrink-0">
-                    <img className="w-full h-full object-cover" alt={t("navProfile")} src={user.avatarUrl} />
+                  <div className="relative shrink-0">
+                    <input
+                      type="file"
+                      ref={avatarInputRef}
+                      onChange={handleAvatarUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="w-24 h-24 rounded-full border-4 border-primary overflow-hidden relative group focus:outline-none"
+                      title={t("changeProfilePicture")}
+                    >
+                      <img className="w-full h-full object-cover" alt={t("navProfile")} src={user.avatarUrl} />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="w-6 h-6 text-white" />
+                      </div>
+                    </button>
                   </div>
                   <div className="text-center sm:text-left space-y-2">
                     <h2 className="text-2xl font-bold text-on-surface">{user.name}</h2>
                     <p className="text-sm text-on-surface-variant font-semibold">{user.email}</p>
-                    
-                    <div className="flex gap-2 justify-center sm:justify-start">
-                      <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full">
-                        {t("enthusiastLevel")}
-                      </span>
-                      <span className="bg-secondary-container text-on-secondary-container text-xs font-bold px-3 py-1 rounded-full">
-                        {t("companionCount", { count: savedCats.length })}
-                      </span>
-                    </div>
                   </div>
                 </div>
 
@@ -1363,21 +1517,6 @@ export default function App() {
                       <span className="text-xs font-semibold text-on-surface-variant">{t("appVersionValue")}</span>
                     </div>
                   </div>
-                </div>
-
-                {/* Dev Test Error Screen triggers per screenshot */}
-                <div className="bg-primary-fixed/20 rounded-[24px] p-6 border border-outline-variant/40 space-y-4">
-                  <h3 className="text-lg font-bold text-primary">{t("demoTestingTitle")}</h3>
-                  <p className="text-sm text-on-surface-variant font-medium">
-                    {t("demoTestingDescription")}
-                  </p>
-                  <button 
-                    onClick={() => setShowErrorScreen(true)}
-                    className="w-full bg-primary text-on-primary font-bold text-sm py-3 rounded-xl squishy-interaction shadow-md flex items-center justify-center gap-2 hover:brightness-110 cursor-pointer"
-                  >
-                    <AlertCircle className="w-4 h-4" />
-                    {t("openConnectionErrorPage")}
-                  </button>
                 </div>
 
                 {/* Log Out */}
@@ -1407,10 +1546,10 @@ export default function App() {
       </div>
 
       {/* E. MOBILE BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-2 px-4 bg-white border-t border-outline-variant/20 shadow-lg rounded-t-xl mobile-bottom-nav">
+      <nav className="fixed bottom-0 left-0 w-full z-50 grid grid-cols-4 items-center bg-white border-t border-outline-variant/20 shadow-lg rounded-t-2xl mobile-bottom-nav">
         <button 
-          onClick={() => { setActiveTab("home"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
-          className={`flex flex-col items-center justify-center px-4 py-1.5 rounded-full transition-all duration-200 ${
+          onClick={() => { setActiveTab("home"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
+          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all duration-200 ${
             activeTab === "home" && !selectedBreedId ? "bg-secondary-container text-on-secondary-container" : "text-on-surface-variant"
           }`}
         >
@@ -1419,8 +1558,8 @@ export default function App() {
         </button>
 
         <button 
-          onClick={() => { setActiveTab("scan"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
-          className={`flex flex-col items-center justify-center px-4 py-1.5 rounded-full transition-all duration-200 ${
+          onClick={() => { setActiveTab("scan"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
+          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all duration-200 ${
             activeTab === "scan" && !selectedBreedId ? "bg-secondary-container text-on-secondary-container" : "text-on-surface-variant"
           }`}
         >
@@ -1429,8 +1568,8 @@ export default function App() {
         </button>
 
         <button 
-          onClick={() => { setActiveTab("saved"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
-          className={`flex flex-col items-center justify-center px-4 py-1.5 rounded-full transition-all duration-200 ${
+          onClick={() => { setActiveTab("saved"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
+          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all duration-200 ${
             activeTab === "saved" && !selectedBreedId ? "bg-secondary-container text-on-secondary-container" : "text-on-surface-variant"
           }`}
         >
@@ -1439,8 +1578,8 @@ export default function App() {
         </button>
 
         <button 
-          onClick={() => { setActiveTab("profile"); setSelectedBreedId(null); setSelectedBreedDetail(null); }}
-          className={`flex flex-col items-center justify-center px-4 py-1.5 rounded-full transition-all duration-200 ${
+          onClick={() => { setActiveTab("profile"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
+          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all duration-200 ${
             activeTab === "profile" && !selectedBreedId ? "bg-secondary-container text-on-secondary-container" : "text-on-surface-variant"
           }`}
         >
@@ -1449,212 +1588,6 @@ export default function App() {
         </button>
       </nav>
 
-      {/* ==================== DIALOG MODAL: NUTRITION PLANNER ==================== */}
-      {showNutritionModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl border border-outline-variant/30 flex flex-col max-h-[90vh]">
-            {/* Header */}
-            <div className="bg-primary text-on-primary p-6 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-white text-2xl font-bold">pets</span>
-                <h3 className="font-extrabold text-lg text-white font-sans">{t("nutritionModalTitle")}</h3>
-              </div>
-              <button 
-                onClick={() => setShowNutritionModal(false)}
-                className="text-white hover:opacity-80 p-1 rounded-full hover:bg-white/10"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Content body */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-on-surface">
-              {/* Image banner */}
-              <div className="h-32 rounded-2xl overflow-hidden">
-                <img alt={t("nutritionModalTitle")} className="w-full h-full object-cover" src={IMAGES.nutrition} />
-              </div>
-
-              {/* Slider for cat weight */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center font-bold text-sm">
-                  <span>{t("companionWeight")}</span>
-                  <span className="text-primary">{t("weightValue", { weight: catWeight })}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="4" 
-                  max="25" 
-                  step="1"
-                  className="w-full h-2 bg-surface-container rounded-lg appearance-none cursor-pointer accent-primary"
-                  value={catWeight}
-                  onChange={(e) => setCatWeight(Number(e.target.value))}
-                />
-              </div>
-
-              {/* Activity Level Selector */}
-              <div className="space-y-2">
-                <label className="block text-sm font-bold">{t("activityLevel")}</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["low", "medium", "high"] as const).map((level) => (
-                    <button 
-                      key={level}
-                      onClick={() => setActivityLevel(level)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer capitalize ${
-                        activityLevel === level 
-                          ? "bg-secondary text-white border-secondary shadow-sm" 
-                          : "bg-surface border-outline-variant/40 hover:bg-surface-container-low"
-                      }`}
-                    >
-                      {level === "low" ? t("activityLow") : level === "medium" ? t("activityMedium") : t("activityHigh")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Calculated Result Display */}
-              <div className="bg-secondary-container/35 rounded-2xl p-4 text-center border border-secondary-container/50">
-                <span className="text-xs uppercase tracking-widest font-bold text-on-secondary-container block mb-1">{t("recommendedIntake")}</span>
-                <h4 className="text-2xl font-black text-on-secondary-container font-sans">{t("caloriesPerDay", { calories: calculatedCalories })}</h4>
-              </div>
-
-              {/* Daily Feeding Checklists */}
-              <div className="space-y-3">
-                <span className="block text-sm font-bold">{t("mealsChecklist")}</span>
-                <div className="space-y-2">
-                  {Object.entries(completedMeals).map(([meal, isDone]) => {
-                    const mealKey = meal === "breakfast" ? "mealBreakfast" : meal === "lunch" ? "mealLunch" : "mealDinner";
-                    return (
-                      <div 
-                        key={meal}
-                        onClick={() => setCompletedMeals({ ...completedMeals, [meal]: !isDone })}
-                        className="flex items-center gap-3 p-3 bg-surface-container-low border border-outline-variant/15 rounded-xl cursor-pointer hover:bg-surface-container transition-colors"
-                      >
-                        <input 
-                          type="checkbox" 
-                          checked={isDone}
-                          readOnly
-                          className="rounded border-outline-variant/30 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                        />
-                        <span className={`text-sm font-bold ${isDone ? "line-through text-on-surface-variant/50" : "text-on-surface"}`}>
-                          {t("mealFeed", { meal: t(mealKey) })}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Save */}
-            <div className="p-4 bg-surface border-t border-outline-variant/20 flex gap-2">
-              <button 
-                onClick={() => {
-                  alert(t("nutritionSaved", { calories: calculatedCalories }));
-                  setShowNutritionModal(false);
-                }}
-                className="w-full bg-primary text-on-primary font-bold py-3 rounded-full hover:brightness-110 shadow-md squishy-interaction cursor-pointer"
-              >
-                {t("saveIntakeSettings")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ==================== DIALOG MODAL: VITALS SCANNED METRICS ==================== */}
-      {showVitalsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl border border-outline-variant/30 flex flex-col">
-            {/* Header */}
-            <div className="bg-primary text-on-primary p-6 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-white text-2xl font-bold">pets</span>
-                <h3 className="font-extrabold text-lg text-white font-sans">{t("vitalsModalTitle")}</h3>
-              </div>
-              <button 
-                onClick={() => setShowVitalsModal(false)}
-                className="text-white hover:opacity-80 p-1 rounded-full hover:bg-white/10"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Content body */}
-            <div className="p-6 space-y-6 text-on-surface">
-              {/* Image banner */}
-              <div className="h-32 rounded-2xl overflow-hidden">
-                <img alt={t("vitalsModalTitle")} className="w-full h-full object-cover" src={IMAGES.vitals} />
-              </div>
-
-              {/* Status display */}
-              <div className="text-center space-y-2">
-                {vitalsIsMeasuring ? (
-                  <div className="space-y-2">
-                    <div className="flex justify-center items-center gap-1.5 text-primary">
-                      <span className="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-                      <span className="text-sm font-extrabold animate-pulse">{t("vitalsPositioning")}</span>
-                    </div>
-                    <p className="text-xs text-on-surface-variant font-medium">{t("vitalsPositioningHint")}</p>
-                  </div>
-                ) : vitalsCompleted ? (
-                  <div className="flex justify-center items-center gap-1 text-secondary text-sm font-bold">
-                    <CheckCircle2 className="w-5 h-5 text-secondary" />
-                    <span>{t("vitalsCompleted")}</span>
-                  </div>
-                ) : (
-                  <p className="text-sm font-bold text-on-surface-variant">{t("vitalsStartPrompt")}</p>
-                )}
-              </div>
-
-              {/* Double Metrics Presentation */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Heart Rate */}
-                <div className="bg-surface-container rounded-2xl p-4 text-center border border-outline-variant/20 relative overflow-hidden">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase block mb-1">{t("heartRate")}</span>
-                  <h4 className={`text-3xl font-black font-sans ${vitalsIsMeasuring ? "text-primary animate-pulse" : "text-primary"}`}>
-                    {t("bpmValue", { rate: vitalsHeartRate })}
-                  </h4>
-                  <p className="text-[10px] font-bold text-secondary mt-1 block">{t("normalRange")}</p>
-                </div>
-
-                {/* Weight */}
-                <div className="bg-surface-container rounded-2xl p-4 text-center border border-outline-variant/20 relative overflow-hidden">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase block mb-1">{t("weight")}</span>
-                  <h4 className={`text-3xl font-black font-sans ${vitalsIsMeasuring ? "text-primary animate-pulse" : "text-primary"}`}>
-                    {t("weightValueShort", { weight: vitalsWeight })}
-                  </h4>
-                  <p className="text-[10px] font-bold text-secondary mt-1 block">{t("healthyCompanion")}</p>
-                </div>
-              </div>
-
-              {/* Simulation button */}
-              <button 
-                onClick={runVitalsSimulation}
-                disabled={vitalsIsMeasuring}
-                className={`w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                  vitalsIsMeasuring 
-                    ? "bg-surface-container-high text-on-surface-variant cursor-not-allowed" 
-                    : "bg-secondary text-white hover:brightness-110 squishy-interaction cursor-pointer"
-                }`}
-              >
-                <RefreshCw className={`w-4 h-4 ${vitalsIsMeasuring ? "animate-spin" : ""}`} />
-                {vitalsIsMeasuring ? t("scanningMetrics") : t("rescanVitals")}
-              </button>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 bg-surface border-t border-outline-variant/20">
-              <button 
-                onClick={() => setShowVitalsModal(false)}
-                className="w-full bg-primary text-on-primary font-bold py-3 rounded-full hover:brightness-110 shadow-md squishy-interaction cursor-pointer"
-              >
-                {t("closeMetrics")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
     </div>
   );
 }

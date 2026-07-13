@@ -57,10 +57,19 @@ html,
 body,
 #root {
   overflow-x: hidden;
+  height: 100%;
 }
 
 body {
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
 }
 
 /* iPhone safe-area support (notch / home indicator) */
@@ -100,15 +109,21 @@ body {
 .phone-frame {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--color-background);
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 768px) {
   .phone-frame {
     max-width: 430px;
     min-height: 90vh;
+    min-height: 90dvh;
     max-height: 90vh;
+    max-height: 90dvh;
     margin: 5vh auto;
+    margin: 5dvh auto;
     border-radius: 44px;
     box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
     border: 10px solid #1f1b17;
@@ -120,5 +135,29 @@ body {
   body {
     background-color: #e2d8d1;
   }
+}
+
+/* Prevent horizontal overflow on narrow phones */
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensure form inputs scale nicely on mobile */
+input,
+select,
+textarea,
+button {
+  font-size: 16px;
+}
+
+/* Minimum touch target size */
+button,
+a,
+[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
 }
 
