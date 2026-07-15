@@ -74,6 +74,12 @@ export default function App() {
   const t = (key: TranslationKey, params?: Record<string, string | number>) =>
     translate(language, key, params);
 
+  // Breed id helpers: names from the API may contain spaces/caps, but our
+  // STANDARD_BREEDS ids are normalized (lowercase, no spaces).
+  const normalizeBreedId = (id: string) => id.toLowerCase().replace(/\s+/g, "");
+  const getBreedByIdOrName = (idOrName: string | null) =>
+    idOrName ? STANDARD_BREEDS.find((b) => b.id === normalizeBreedId(idOrName)) : undefined;
+
   // App views & flows
   const [activeTab, setActiveTab] = useState<TabType>("home");
   const [selectedBreedId, setSelectedBreedId] = useState<string | null>(null);
@@ -196,11 +202,11 @@ export default function App() {
 
   // View specific breed details (use embedded offline profiles first, then API)
   const handleViewBreedDetail = async (id: string) => {
-    setSelectedBreedId(id);
+    const normalizedId = normalizeBreedId(id);
+    setSelectedBreedId(normalizedId);
     setSelectedBreedDetail(null);
     setIsDetailLoading(true);
     try {
-      const normalizedId = id.toLowerCase().replace(/\s+/g, "");
       const localProfile = BREED_PROFILES[normalizedId];
       if (localProfile) {
         setSelectedBreedDetail(localProfile);
@@ -253,7 +259,7 @@ export default function App() {
         
         // Success
         setSelectedBreedDetail(payload);
-        setSelectedBreedId(payload.breedName);
+        setSelectedBreedId(normalizeBreedId(payload.breedName));
         
         // Auto-save scanned cat to list using server-persisted image URL when available
         const persistedImageUrl = result.savedImageUrl || null;
@@ -368,7 +374,7 @@ export default function App() {
         breedName: selectedBreedDetail.breedName,
         shortDescription: selectedBreedDetail.shortDescription,
         scannedAt: new Date().toISOString(),
-        imageUrl: selectedBreedId ? (STANDARD_BREEDS.find(b => b.id === selectedBreedId)?.image || IMAGES.cameraFeed) : IMAGES.cameraFeed,
+        imageUrl: getBreedByIdOrName(selectedBreedId)?.image || scanImage || IMAGES.cameraFeed,
         notes: t("savedFromExplorerNote")
       };
       saveCatsToStorage([newSaved, ...savedCats]);
@@ -435,12 +441,8 @@ export default function App() {
       capturePhoto();
       return;
     }
-    if (!scanImage) {
-      startCamera();
-      return;
-    }
-    // Re-scan existing image
-    handleRunScan(scanImage, scanMimeType || "image/jpeg", "camera");
+    // Always start the camera when the shutter is pressed, so users can retake photos
+    startCamera();
   };
 
   // Attach the camera stream to the video element once it is rendered
@@ -678,14 +680,6 @@ export default function App() {
             </div>
           </div>
         </main>
-
-        <footer className="py-8 flex justify-center opacity-30 pointer-events-none">
-          <div className="flex gap-4 text-primary">
-            <span className="material-symbols-outlined">pets</span>
-            <span className="material-symbols-outlined">favorite</span>
-            <span className="material-symbols-outlined">pets</span>
-          </div>
-        </footer>
       </div>
     );
   }
@@ -826,7 +820,7 @@ export default function App() {
       </header>
 
       {/* C. MAIN WORKSPACE CONTENT */}
-      <div className="flex-1 min-h-0 flex flex-col app-main-content">
+      <div className={`flex-1 min-h-0 flex flex-col app-main-content ${activeTab === "scan" ? "!pb-0" : ""}`}>
         
         {/* VIEW ROUTER FOR BREED DETAIL OR CURRENT SELECTED TAB */}
         {selectedBreedId ? (
@@ -855,8 +849,8 @@ export default function App() {
                         alt={selectedBreedDetail.breedName} 
                         className="absolute inset-0 w-full h-full object-cover"
                         src={
+                          getBreedByIdOrName(selectedBreedId)?.image ||
                           scanImage ||
-                          STANDARD_BREEDS.find((b) => b.id === selectedBreedId)?.image ||
                           IMAGES.cameraFeed
                         }
                       />
@@ -1211,12 +1205,12 @@ export default function App() {
 
             {activeTab === "scan" && (
               /* ==================== SCREEN: AI SCANNER ==================== */
-              <main className="flex-grow flex flex-col min-h-0 px-4 sm:px-6 py-4 relative max-w-3xl mx-auto w-full">
-                {/* Camera Feed Container */}
-                <div className="flex-1 min-h-0 min-h-[320px] sm:min-h-[380px] md:min-h-[400px] relative rounded-[32px] overflow-hidden shadow-xl border-4 border-surface-container-highest bg-surface-dim">
+              <main className="flex-1 min-h-0 relative">
+                {/* Full-screen Camera Feed Container */}
+                <div className="absolute inset-0 overflow-hidden bg-black">
                   
                   {/* Display live camera preview, selected scanning picture, or placeholder */}
-                  <div className="absolute inset-0 w-full h-full bg-black">
+                  <div className="absolute inset-0 w-full h-full">
                     {cameraStream ? (
                       <video
                         ref={videoRef}
@@ -1236,10 +1230,10 @@ export default function App() {
                   </div>
 
                   {/* Overlays / Viewfinder */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8 pointer-events-none camera-overlay-gradient">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 pointer-events-none camera-overlay-gradient">
                     
                     {/* Status badges */}
-                    <div className="absolute top-6 left-0 right-0 flex justify-center gap-4 px-6 pointer-events-auto">
+                    <div className="absolute top-6 left-0 right-0 flex justify-center gap-3 px-4 pointer-events-auto">
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/20">
                         <span className={`w-2.5 h-2.5 rounded-full ${flashOn ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`}></span>
                         <span className="text-white font-bold text-xs">{t("optimalLight")}</span>
@@ -1252,7 +1246,7 @@ export default function App() {
                     </div>
 
                     {/* Framing corners */}
-                    <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+                    <div className="relative w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 flex items-center justify-center">
                       <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white/80 rounded-tl-2xl"></div>
                       <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white/80 rounded-tr-2xl"></div>
                       <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/80 rounded-bl-2xl"></div>
@@ -1262,35 +1256,35 @@ export default function App() {
                       {isScanning && (
                         <div className="absolute left-0 right-0 h-1 bg-primary scan-line shadow-[0_0_15px_rgba(153,70,42,1)]"></div>
                       )}
-                      
-                    </div>
-
-                    {/* Scan prompt overlay */}
-                    <div className="absolute bottom-6 text-center w-full px-6">
-                      <p className="text-white font-semibold text-sm drop-shadow-md bg-black/30 px-4 py-1.5 rounded-full inline-block">
-                        {isScanning
-                          ? t("scanPromptScanning")
-                          : cameraStream
-                            ? t("scanPromptCapture")
-                            : scanImage
-                              ? t("scanPromptRescan")
-                              : t("scanPromptIdle")}
-                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Camera error message */}
-                {cameraError && (
-                  <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 text-amber-800 text-sm">
-                    <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
-                    <p className="font-medium">{cameraError}</p>
+                {/* Floating bottom controls */}
+                <div className="absolute bottom-0 left-0 right-0 z-[60] pb-[calc(5rem+env(safe-area-inset-bottom))]">
+                  {/* Scan prompt overlay */}
+                  <div className="text-center w-full px-6 mb-4">
+                    <p className="text-white font-semibold text-sm drop-shadow-md bg-black/30 px-4 py-1.5 rounded-full inline-block">
+                      {isScanning
+                        ? t("scanPromptScanning")
+                        : cameraStream
+                          ? t("scanPromptCapture")
+                          : scanImage
+                            ? t("scanPromptRetake")
+                            : t("scanPromptIdle")}
+                    </p>
                   </div>
-                )}
 
-                {/* Shutter controls section */}
-                <div className="mt-4 mb-20 z-10">
-                  <div className="bg-surface-container-low/95 backdrop-blur-xl rounded-[32px] p-5 flex items-center justify-around shadow-lg border border-outline-variant/30">
+                  {/* Camera error message */}
+                  {cameraError && (
+                    <div className="bg-amber-50 border-y border-amber-200 p-3 flex gap-2 text-amber-800 text-sm">
+                      <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+                      <p className="font-medium">{cameraError}</p>
+                    </div>
+                  )}
+
+                  {/* Shutter controls */}
+                  <div className="bg-surface-container-low/85 backdrop-blur-xl p-5 pb-7 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-white/10">
                     
                     {/* Gallery upload */}
                     <div className="flex flex-col items-center gap-1">
@@ -1311,17 +1305,17 @@ export default function App() {
                       />
                       <button 
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors focus:outline-none"
+                        className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-on-surface-variant hover:bg-white hover:text-primary transition-colors focus:outline-none shadow-sm"
                         title={t("uploadCatPhoto")}
                       >
                         <Upload className="w-5 h-5" />
                       </button>
-                      <span className="text-xs font-bold text-on-surface-variant">{t("gallery")}</span>
+                      <span className="text-xs font-bold text-white drop-shadow-md">{t("gallery")}</span>
                     </div>
 
                     {/* Big Shutter trigger button */}
                     <div className="relative group">
-                      <div className="absolute -inset-4 bg-primary/10 rounded-full scale-0 group-hover:scale-100 transition-transform duration-500 blur-xl"></div>
+                      <div className="absolute -inset-4 bg-white/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-500 blur-xl"></div>
                       <button 
                         onClick={handleTriggerShutter}
                         disabled={isScanning}
@@ -1337,34 +1331,34 @@ export default function App() {
                     <div className="flex flex-col items-center gap-1">
                       <button 
                         onClick={() => setFlashOn(!flashOn)}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors focus:outline-none ${
-                          flashOn ? "bg-amber-100 text-amber-600" : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors focus:outline-none shadow-sm ${
+                          flashOn ? "bg-amber-100 text-amber-600" : "bg-white/90 text-on-surface-variant hover:bg-white"
                         }`}
                         title={t("toggleFlash")}
                       >
                         <Zap className="w-5 h-5" />
                       </button>
-                      <span className="text-xs font-bold text-on-surface-variant">{t("flash")}</span>
+                      <span className="text-xs font-bold text-white drop-shadow-md">{t("flash")}</span>
                     </div>
                   </div>
-                </div>
 
-                {/* Error handling block */}
-                {scanError && (
-                  <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3 text-red-800 text-sm">
-                    <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
-                    <div>
-                      <p className="font-bold">{t("scanProblem")}</p>
-                      <p className="font-medium">{scanError}</p>
-                      <button 
-                        onClick={() => setScanError(null)} 
-                        className="mt-1 text-xs font-bold underline cursor-pointer text-red-900 block"
-                      >
-                        {t("dismiss")}
-                      </button>
+                  {/* Error handling block */}
+                  {scanError && (
+                    <div className="bg-red-50 border-t border-red-200 p-4 flex gap-3 text-red-800 text-sm">
+                      <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
+                      <div>
+                        <p className="font-bold">{t("scanProblem")}</p>
+                        <p className="font-medium">{scanError}</p>
+                        <button 
+                          onClick={() => setScanError(null)} 
+                          className="mt-1 text-xs font-bold underline cursor-pointer text-red-900 block"
+                        >
+                          {t("dismiss")}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </main>
             )}
 
@@ -1535,14 +1529,6 @@ export default function App() {
           </>
         )}
 
-        {/* D. FOOTER LOGO DECORATION */}
-        <footer className="py-8 flex justify-center opacity-35 pointer-events-none mt-auto">
-          <div className="flex gap-4 text-primary">
-            <span className="material-symbols-outlined">pets</span>
-            <span className="material-symbols-outlined">favorite</span>
-            <span className="material-symbols-outlined">pets</span>
-          </div>
-        </footer>
       </div>
 
       {/* E. MOBILE BOTTOM NAVIGATION */}
