@@ -464,6 +464,13 @@ export default function App() {
     }
   }, [activeTab]);
 
+  // Start the camera automatically when entering the scan tab
+  useEffect(() => {
+    if (activeTab === "scan" && !cameraStream && !scanImage && !isScanning) {
+      startCamera();
+    }
+  }, [activeTab]);
+
   // Helper to render a language selector control
   const LanguageSelector = ({ className = "" }: { className?: string }) => {
     const [open, setOpen] = useState(false);
@@ -1532,7 +1539,7 @@ export default function App() {
       </div>
 
       {/* E. MOBILE BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 grid grid-cols-4 items-center bg-white border-t border-outline-variant/20 shadow-lg rounded-t-2xl mobile-bottom-nav">
+      <nav className="fixed bottom-0 left-0 w-full z-[70] grid grid-cols-4 items-center bg-white border-t border-outline-variant/20 shadow-lg rounded-t-2xl mobile-bottom-nav">
         <button 
           onClick={() => { setActiveTab("home"); setSelectedBreedId(null); setSelectedBreedDetail(null); setShowBreedDiscoveryPage(false); }}
           className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all duration-200 ${
