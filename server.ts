@@ -39,6 +39,10 @@ function getGeminiClient() {
 const OFFLINE_BREEDS = BREED_PROFILES;
 
 // Tencent Cloud COS client (optional — falls back to local disk if not configured)
+const COS_BUCKET = process.env.TENCENT_COS_BUCKET || "";
+const COS_REGION = process.env.TENCENT_COS_REGION || "";
+const COS_PREFIX = (process.env.TENCENT_COS_PREFIX || "catscope").replace(/\/$/, "");
+
 const cosClient = (() => {
   const secretId = process.env.TENCENT_COS_SECRET_ID;
   const secretKey = process.env.TENCENT_COS_SECRET_KEY;
@@ -46,12 +50,13 @@ const cosClient = (() => {
     console.log("[CatScope COS] COS credentials not configured; using local disk storage for images.");
     return null;
   }
+  if (!COS_BUCKET || !COS_REGION) {
+    console.log("[CatScope COS] COS credentials present but bucket/region missing; using local disk storage.");
+    return null;
+  }
+  console.log(`[CatScope COS] Configured for bucket ${COS_BUCKET} in ${COS_REGION} (prefix: ${COS_PREFIX}).`);
   return new COS({ SecretId: secretId, SecretKey: secretKey });
 })();
-
-const COS_BUCKET = process.env.TENCENT_COS_BUCKET || "";
-const COS_REGION = process.env.TENCENT_COS_REGION || "";
-const COS_PREFIX = (process.env.TENCENT_COS_PREFIX || "catscope").replace(/\/$/, "");
 
 // Ensure user-uploaded scan images are persisted on disk
 const IMAGES_BASE_DIR = path.join(process.cwd(), "data", "images");
@@ -73,16 +78,19 @@ function looksLikeBase64(value: string): boolean {
   return /^[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length > 100;
 }
 
-async function saveUserImage(userId: string, base64Image: string, mimeType: string) {
-  const sanitized = sanitizeUserId(userId);
+async function saveUserImage(userId: string | null, base64Image: string, mimeType: string) {
+  const sanitized = sanitizeUserId(userId || "anonymous");
   const ext = getExtensionFromMimeType(mimeType || "image/jpeg");
   const filename = `${Date.now()}.${ext}`;
   const buffer = Buffer.from(base64Image, "base64");
+
+  console.log(`[CatScope Save] Received image for user "${sanitized}" (${buffer.length} bytes). COS configured: ${Boolean(cosClient && COS_BUCKET && COS_REGION)}`);
 
   // Try uploading to Tencent Cloud COS first if configured
   if (cosClient && COS_BUCKET && COS_REGION) {
     const key = `${COS_PREFIX}/${sanitized}/${filename}`;
     try {
+      console.log("[CatScope COS] Uploading to", key, "...");
       const result = await cosClient.putObject({
         Bucket: COS_BUCKET,
         Region: COS_REGION,
@@ -91,7 +99,7 @@ async function saveUserImage(userId: string, base64Image: string, mimeType: stri
         ContentLength: buffer.length,
       });
       const cosUrl = `https://${result.Location || `${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/${key}`}`;
-      console.log("[CatScope COS] Uploaded", key);
+      console.log("[CatScope COS] Uploaded successfully:", cosUrl);
       return { filePath: cosUrl, savedImageUrl: cosUrl };
     } catch (cosErr: any) {
       console.error("[CatScope COS] Upload failed, falling back to local disk:", cosErr.message || cosErr);
@@ -103,12 +111,24 @@ async function saveUserImage(userId: string, base64Image: string, mimeType: stri
   fs.mkdirSync(userDir, { recursive: true });
   const filePath = path.join(userDir, filename);
   fs.writeFileSync(filePath, buffer);
+  console.log("[CatScope Save] Saved locally:", filePath);
 
   return {
     filePath,
     savedImageUrl: `/api/images/${sanitized}/${filename}`
   };
 }
+
+// API: Health / storage status (useful for verifying COS configuration)
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    cosConfigured: Boolean(cosClient && COS_BUCKET && COS_REGION),
+    cosBucket: COS_BUCKET || undefined,
+    cosRegion: COS_REGION || undefined,
+    cosPrefix: COS_PREFIX,
+  });
+});
 
 // API: Get preloaded breeds list
 app.get("/api/breeds", (req, res) => {
@@ -133,10 +153,10 @@ app.post("/api/scan", async (req, res) => {
     return res.status(400).json({ success: false, error: "No image data provided." });
   }
 
-  // Persist uploaded / camera-captured images to data/images/{userId}
+  // Persist uploaded / camera-captured images to COS or local disk
   let savedImageUrl: string | undefined;
   let savedImagePath: string | undefined;
-  if (userId && looksLikeBase64(image)) {
+  if (looksLikeBase64(image)) {
     try {
       const saved = await saveUserImage(userId, image, mimeType);
       savedImageUrl = saved.savedImageUrl;
@@ -144,6 +164,8 @@ app.post("/api/scan", async (req, res) => {
     } catch (saveErr) {
       console.error("Failed to save user scan image:", saveErr);
     }
+  } else {
+    console.log("[CatScope Save] Image data did not look like base64; skipping persistence.");
   }
 
   try {
